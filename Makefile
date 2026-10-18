@@ -1,4 +1,13 @@
-## you have command.cc command.h tokenizer.cc tokenizer.h you need compile them and link
-## them to one object file called  : "myshell" 
-## so we should run make , that will create our object myshell ,
-## ./myshell should run your application 
+.PHONY: cleanup
+
+myshell: command.o tokenizer.o
+	g++ command.o tokenizer.o -o myshell
+
+command.o: command.cc command.h
+	g++ -c command.cc
+
+tokenizer.o: tokenizer.cc tokenizer.h
+	g++ -c tokenizer.cc
+
+cleanup:
+	rm -f command.o tokenizer.o	myshell
