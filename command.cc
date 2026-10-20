@@ -193,10 +193,119 @@ void Command::print()
 void Command::execute()
 {
     print();
-    /*
-        Write your code here
-    */
 
+    if (_numberOfSimpleCommands == 0)
+    {
+        return;
+    }
+
+    if (strcmp(_simpleCommands[0]->_arguments[0],"exit") == 0)
+    {
+        exit(0);
+    }
+    else if (strcmp(_simpleCommands[0]->_arguments[0],"cd") == 0)
+    {
+        if (_simpleCommands[0]->_numberOfArguments == 2)
+        {
+            chdir(_simpleCommands[0]->_arguments[1]);
+            clear();
+            return;
+        }
+        else
+        {
+            chdir(getenv("HOME"));
+            clear();
+            return;
+        }
+
+    }
+
+    int input_tracker = 0;
+    
+    for (int i = 0; i < _numberOfSimpleCommands; i++)
+    {
+        int output_tracker;
+
+        int pipeArray[2];
+
+        if (i == _numberOfSimpleCommands - 1)
+        {
+            output_tracker = 1;
+        }
+        else
+        {
+            pipe(pipeArray);
+            output_tracker = pipeArray[1]; 
+        }
+
+        pid_t pid = fork();
+
+        if (pid < 0)
+        {
+            perror("fork");
+        }
+        else if (pid == 0) // child
+        {
+            int fd;
+
+            dup2(input_tracker, 0);
+            dup2(output_tracker, 1);
+
+            if (_inputFile != NULL)
+            {
+                fd = open(_inputFile, O_RDONLY);
+                dup2(fd, 0);
+                close(fd);
+            }
+
+            if (_outFile != NULL)
+            {
+                if (_append == 1)
+                {
+                    fd = open(_outFile, O_WRONLY|O_CREAT|O_APPEND, 0666);
+                }
+                else
+                {
+                    fd = open(_outFile, O_WRONLY|O_CREAT|O_TRUNC, 0666);
+                }
+                dup2(fd, 1);
+                close(fd);
+            }
+
+            if (_errFile != NULL)
+            {
+                fd = open (_errFile, O_WRONLY|O_CREAT|O_TRUNC, 0666);
+                dup2(fd, 2);
+                close(fd);
+            }
+
+            execvp(_simpleCommands[i]->_arguments[0], _simpleCommands[i]->_arguments);
+            perror("execvp");
+            exit(1);
+        }
+        else // parent
+        {
+            if (input_tracker !=0)
+            {
+                close(input_tracker);
+            }
+
+            if (output_tracker != 1)
+            {
+                close(output_tracker);
+            }
+
+            if (!_background)
+            {
+                waitpid(pid, NULL, 0);
+            }
+
+            if (i != _numberOfSimpleCommands - 1)
+            {
+                input_tracker = pipeArray[0];
+            }
+        }
+    }
     clear();
     // prompt() here would make prog crash, while(true) loop alr handles asking for next input
 }
