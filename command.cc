@@ -24,6 +24,13 @@ void ignoreSignal (int signal_number)
     fflush(stdout);
 }
 
+void childLogger (int child)
+{
+    FILE *log = fopen("child_log.txt","a");
+    fprintf(log, "CHILD PROCESS TERMINATED!\n");
+    fclose(log);
+}
+
 void parse(std::vector<Token> &tokens)
 {
     Command::_currentSimpleCommand = new SimpleCommand(); // use a static variable instead of a local one that will be destroyed as soon as parse ends
@@ -338,6 +345,7 @@ SimpleCommand *Command::_currentSimpleCommand;
 int main()
 {
     signal(SIGINT, ignoreSignal);
+    signal(SIGCHLD, childLogger);
     Command::_currentCommand.prompt();
     return 0;
 }
