@@ -31,7 +31,21 @@
 void parse(std::vector<Token> &tokens)
 {
     Command::_currentSimpleCommand = new SimpleCommand(); // use a static variable instead of a local one that will be destroyed as soon as parse ends
-
+    
+    for (size_t i = 0; i < tokens.size; i++)
+    {
+        if (tokens[i].type == TOKEN_EOF)
+        {
+            break;
+        }
+        if (tokens[i].type == TOKEN_COMMAND || tokens[i].type == TOKEN_ARGUMENT)
+        {
+            if ( i > 0 && tokens[i-1].type == TOKEN_REDIRECT)
+            {
+                Command::_currentCommand._outFile = strdup(tokens[i].value.c_str());
+            }
+        }
+    }
     Command::_currentCommand.execute();
     /*
       Implement this function 
