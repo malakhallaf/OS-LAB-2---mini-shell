@@ -1,14 +1,3 @@
-
-/*
- * 
- *
- * Template file.
- * You will need to add more code here to execute the command table.
- *
- * NOTE: You are responsible for fixing any bugs this code may have!
- *
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -32,27 +21,60 @@ void parse(std::vector<Token> &tokens)
 {
     Command::_currentSimpleCommand = new SimpleCommand(); // use a static variable instead of a local one that will be destroyed as soon as parse ends
     
-    for (size_t i = 0; i < tokens.size; i++)
+    for (size_t i = 0; i < tokens.size(); i++)
     {
         if (tokens[i].type == TOKEN_EOF)
         {
             break;
         }
+
         if (tokens[i].type == TOKEN_COMMAND || tokens[i].type == TOKEN_ARGUMENT)
         {
-            if ( i > 0 && tokens[i-1].type == TOKEN_REDIRECT)
+            if (i > 0 && tokens[i-1].type == TOKEN_REDIRECT)
             {
                 Command::_currentCommand._outFile = strdup(tokens[i].value.c_str());
             }
+            else if (i > 0 && tokens[i-1].type == TOKEN_APPEND)
+            {
+                Command::_currentCommand._outFile = strdup(tokens[i].value.c_str());
+                Command::_currentCommand._append = 1;
+            }
+            else if (i > 0 && tokens[i-1].type == TOKEN_INPUT)
+            {
+                Command::_currentCommand._inputFile = strdup(tokens[i].value.c_str());
+            }
+            else if (i > 0 && tokens[i-1].type == TOKEN_ERROR)
+            {
+                Command::_currentCommand._errFile = strdup(tokens[i].value.c_str());
+            }
+            else if (i > 0 && tokens[i-1].type == TOKEN_REDIRECT_AND_ERROR)
+            {
+                Command::_currentCommand._outFile = strdup(tokens[i].value.c_str());
+                Command::_currentCommand._errFile = strdup(tokens[i].value.c_str());
+                Command::_currentCommand._out_error = 1;
+            }
+            else
+            {
+                Command::_currentSimpleCommand->insertArgument(strdup(tokens[i].value.c_str()));
+            }
+        }
+        else if (tokens[i].type == TOKEN_PIPE)
+        {
+            Command::_currentCommand.insertSimpleCommand(Command::_currentSimpleCommand);
+            Command::_currentSimpleCommand = new SimpleCommand;
+        }
+        else if (tokens[i].type == TOKEN_BACKGROUND)
+        {
+            Command::_currentCommand._background = 1;
         }
     }
-    Command::_currentCommand.execute();
-    /*
-      Implement this function 
-      you must parse for all possible tokens scenario
-      right now command.execute only print the format , you will inject it in your logic.
 
-    */
+    if (Command::_currentSimpleCommand->_numberOfArguments > 0)
+    {
+        Command::_currentCommand.insertSimpleCommand(Command::_currentSimpleCommand);
+    }
+
+    Command::_currentCommand.execute();
 }
 
 SimpleCommand::SimpleCommand()
