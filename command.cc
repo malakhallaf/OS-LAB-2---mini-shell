@@ -17,6 +17,13 @@
 #include "command.h"
 #include "tokenizer.h"
 
+void ignoreSignal (int signal_number)
+{
+    printf("\n");
+    Command::_currentCommand.prompt();
+    fflush(stdout);
+}
+
 void parse(std::vector<Token> &tokens)
 {
     Command::_currentSimpleCommand = new SimpleCommand(); // use a static variable instead of a local one that will be destroyed as soon as parse ends
@@ -246,6 +253,8 @@ void Command::execute()
         }
         else if (pid == 0) // child
         {
+            signal(SIGINT, SIG_DFL);
+
             int fd;
 
             dup2(input_tracker, 0);
@@ -328,6 +337,7 @@ SimpleCommand *Command::_currentSimpleCommand;
 
 int main()
 {
+    signal(SIGINT, ignoreSignal);
     Command::_currentCommand.prompt();
     return 0;
 }
