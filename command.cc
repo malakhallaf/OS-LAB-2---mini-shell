@@ -30,10 +30,9 @@
 
 void parse(std::vector<Token> &tokens)
 {
-    Command currentCommand;
-    SimpleCommand *currentSimpleCommand = new SimpleCommand();
+    Command::_currentSimpleCommand = new SimpleCommand(); // use a static variable instead of a local one that will be destroyed as soon as parse ends
 
-    currentCommand.execute();
+    Command::_currentCommand.execute();
     /*
       Implement this function 
       you must parse for all possible tokens scenario
@@ -68,13 +67,15 @@ Command::Command()
 {
     _numberOfAvailableSimpleCommands = 1;
     _simpleCommands = (SimpleCommand **)
-        malloc(_numberOfSimpleCommands * sizeof(SimpleCommand *));
+        malloc(_numberOfAvailableSimpleCommands * sizeof(SimpleCommand *)); // should use available capacity variable instead of the variable that has no value assigned to it yet
 
     _numberOfSimpleCommands = 0;
     _outFile = 0;
     _inputFile = 0;
     _errFile = 0;
     _background = 0;
+    _out_error = 0;
+    _append = 0;
 }
 
 void Command::insertSimpleCommand(SimpleCommand *simpleCommand)
@@ -123,6 +124,8 @@ void Command::clear()
     _inputFile = 0;
     _errFile = 0;
     _background = 0;
+    _out_error = 0;
+    _append = 0;
 }
 
 void Command::print()
@@ -146,7 +149,7 @@ void Command::print()
     printf("  Output       Input        Error        Err&Out       Background\n");
     printf("  ------------ ------------ ------------ ------------ ------------\n");
     printf("  %-12s %-12s %-12s %-12s %-12s\n", _outFile ? _outFile : "default",
-           _inputFile ? _inputFile : "default", _errFile ? _errFile : "default", _out_error == 1 ? _errFile : "default"
+           _inputFile ? _inputFile : "default", _errFile ? _errFile : "default", _out_error == 1 ? _errFile : "default" // _out_error wasn't even initialized, fixed
            ,_background ? "YES" : "NO");
     printf("\n\n");
 }
@@ -159,7 +162,7 @@ void Command::execute()
     */
 
     clear();
-    prompt();
+    // prompt() here would make prog crash, while(true) loop alr handles asking for next input
 }
 
 void Command::prompt()
