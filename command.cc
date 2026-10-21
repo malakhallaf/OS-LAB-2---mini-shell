@@ -16,6 +16,7 @@
 #include <sstream>
 #include "command.h"
 #include "tokenizer.h"
+#include "glob.h"
 
 void ignoreSignal (int signal_number)
 {
@@ -100,17 +101,38 @@ SimpleCommand::SimpleCommand()
 
 void SimpleCommand::insertArgument(char *argument)
 {
-    if (_numberOfAvailableArguments == _numberOfArguments + 1)
+    if (strchr(argument, '*') != NULL || strchr(argument, '?') != NULL)
     {
-        _numberOfAvailableArguments *= 2;
-        _arguments = (char **)realloc(_arguments,
-                                      _numberOfAvailableArguments * sizeof(char *));
+        glob_t result;
+        glob(argument, GLOB_NOCHECK, NULL, &result);
+        for (int i = 0; i < result.gl_pathc; i++)
+        {
+            if (_numberOfAvailableArguments == _numberOfArguments + 1)
+            {
+                _numberOfAvailableArguments *= 2;
+                _arguments = (char **)realloc(_arguments, _numberOfAvailableArguments * sizeof(char *));
+            }
+
+            _arguments[_numberOfArguments] = strdup(result.gl_pathv[i]);
+            _arguments[_numberOfArguments + 1] = NULL;
+
+            _numberOfArguments++;
+        }
+        globfree(&result);
     }
+    else
+    {
+        if (_numberOfAvailableArguments == _numberOfArguments + 1)
+        {
+            _numberOfAvailableArguments *= 2;
+            _arguments = (char **)realloc(_arguments, _numberOfAvailableArguments * sizeof(char *));
+        }
 
-    _arguments[_numberOfArguments] = argument;
-    _arguments[_numberOfArguments + 1] = NULL;
+        _arguments[_numberOfArguments] = argument;
+        _arguments[_numberOfArguments + 1] = NULL;
 
-    _numberOfArguments++;
+        _numberOfArguments++;
+    }
 }
 
 Command::Command()
