@@ -10,4 +10,4 @@ tokenizer.o: tokenizer.cc tokenizer.h
 	g++ -c tokenizer.cc
 
 cleanup:
-	rm -f command.o tokenizer.o	myshell
+	rm -f command.o tokenizer.o	myshell child_log.txt
