@@ -16,7 +16,6 @@
 #include <sstream>
 #include "command.h"
 #include "tokenizer.h"
-#include <signal.h>
 
 void ignoreSignal (int sigNum)
 {
@@ -228,12 +227,12 @@ void Command::print()
 
 void Command::execute()
 {
-    print();
-
     if (_numberOfSimpleCommands == 0)
     {
         return;
     }
+
+    print();
 
     if (strcmp(_simpleCommands[0]->_arguments[0],"exit") == 0)
     {
@@ -292,6 +291,13 @@ void Command::execute()
             if (_inputFile != NULL)
             {
                 fd = open(_inputFile, O_RDONLY);
+
+                if (fd < 0)
+                {
+                    perror("open input file");
+                    exit(1);
+                }
+
                 dup2(fd, 0);
                 close(fd);
             }
@@ -301,10 +307,22 @@ void Command::execute()
                 if (_append == 1)
                 {
                     fd = open(_outFile, O_WRONLY|O_CREAT|O_APPEND, 0666);
+
+                    if (fd < 0)
+                    {
+                        perror("open output file");
+                        exit(1);
+                    }
                 }
                 else
                 {
                     fd = open(_outFile, O_WRONLY|O_CREAT|O_TRUNC, 0666);
+
+                    if (fd < 0)
+                    {
+                        perror("open output file");
+                        exit(1);
+                    }
                 }
                 dup2(fd, 1);
                 close(fd);
@@ -313,6 +331,13 @@ void Command::execute()
             if (_errFile != NULL)
             {
                 fd = open (_errFile, O_WRONLY|O_CREAT|O_TRUNC, 0666);
+
+                if (fd < 0)
+                {
+                    perror("open error file");
+                    exit(1);
+                }
+
                 dup2(fd, 2);
                 close(fd);
             }
