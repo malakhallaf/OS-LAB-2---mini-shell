@@ -16,13 +16,14 @@
 #include <sstream>
 #include "command.h"
 #include "tokenizer.h"
-#include "glob.h"
+#include <signal.h>
 
-void ignoreSignal (int signal_number)
+void ignoreSignal (int sigNum)
 {
-    printf("\n");
-    Command::_currentCommand.prompt();
-    fflush(stdout);
+    const char msg [] = "\ncannot perform action. use exit to terminate.\nmyshell>";
+    write(1, msg, sizeof(msg) - 1);
+    std::cin.clear();
+
 }
 
 void childLogger (int child)
@@ -155,8 +156,7 @@ void Command::insertSimpleCommand(SimpleCommand *simpleCommand)
     if (_numberOfAvailableSimpleCommands == _numberOfSimpleCommands)
     {
         _numberOfAvailableSimpleCommands *= 2;
-        _simpleCommands = (SimpleCommand **)realloc(_simpleCommands,
-                                                    _numberOfAvailableSimpleCommands * sizeof(SimpleCommand *));
+        _simpleCommands = (SimpleCommand **)realloc(_simpleCommands, _numberOfAvailableSimpleCommands * sizeof(SimpleCommand *));
     }
 
     _simpleCommands[_numberOfSimpleCommands] = simpleCommand;
@@ -350,11 +350,11 @@ void Command::execute()
 
 void Command::prompt()
 {
-    printf("myshell>");
-    fflush(stdout);
     std::string input;
     while (true)
     {
+        printf("myshell>");
+        fflush(stdout);
         std::getline(std::cin, input); 
         std::vector<Token> tokens = tokenize(input);
         parse(tokens);
