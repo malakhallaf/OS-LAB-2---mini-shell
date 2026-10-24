@@ -27,9 +27,12 @@ void ignoreSignal (int sigNum)
 
 void childLogger (int child)
 {
-    FILE *log = fopen("child_log.txt","a");
-    fprintf(log, "CHILD PROCESS TERMINATED!\n");
-    fclose(log);
+    int log = open("child_log.log", O_WRONLY|O_CREAT|O_APPEND, 0666);
+    if (log >= 0)
+    {
+        write(log, "CHILD PROCESS TERMINATED!\n", 26);
+        close(log);
+    }
 }
 
 void parse(std::vector<Token> &tokens)
@@ -232,6 +235,12 @@ void Command::execute()
         return;
     }
 
+    if (_simpleCommands[0]->_numberOfArguments == 0 || _simpleCommands[0] == NULL)
+    {
+        clear();
+        return;
+    }
+
     print();
 
     if (strcmp(_simpleCommands[0]->_arguments[0],"exit") == 0)
@@ -242,13 +251,19 @@ void Command::execute()
     {
         if (_simpleCommands[0]->_numberOfArguments == 2)
         {
-            chdir(_simpleCommands[0]->_arguments[1]);
+            if (chdir(_simpleCommands[0]->_arguments[1]) < 0)
+            {
+                perror("cd");
+            }
             clear();
             return;
         }
         else
         {
-            chdir(getenv("HOME"));
+            if (chdir(getenv("HOME")) < 0)
+            {
+                perror("cd");
+            }
             clear();
             return;
         }
@@ -256,6 +271,7 @@ void Command::execute()
     }
 
     int input_tracker = 0;
+    pid_t lastPID = 0;
     
     for (int i = 0; i < _numberOfSimpleCommands; i++)
     {
@@ -288,7 +304,22 @@ void Command::execute()
             dup2(input_tracker, 0);
             dup2(output_tracker, 1);
 
-            if (_inputFile != NULL)
+            if (i != _numberOfSimpleCommands - 1)
+            {
+                close(pipeArray[0]);
+            }
+
+            if (input_tracker != 0)
+            {
+                close(input_tracker);
+            }
+
+            if (output_tracker != 1)
+            {
+                close(output_tracker);
+            }
+
+            if (i == 0 && _inputFile != NULL)
             {
                 fd = open(_inputFile, O_RDONLY);
 
@@ -302,7 +333,7 @@ void Command::execute()
                 close(fd);
             }
 
-            if (_outFile != NULL)
+            if (i == _numberOfSimpleCommands - 1 && _outFile != NULL)
             {
                 if (_append == 1)
                 {
@@ -328,7 +359,7 @@ void Command::execute()
                 close(fd);
             }
 
-            if (_errFile != NULL)
+            if (i == _numberOfSimpleCommands - 1 && _errFile != NULL)
             {
                 fd = open (_errFile, O_WRONLY|O_CREAT|O_TRUNC, 0666);
 
@@ -342,12 +373,19 @@ void Command::execute()
                 close(fd);
             }
 
+            if (_simpleCommands[i]->_arguments[0] == NULL)
+            {
+                exit(1);
+            }
+
             execvp(_simpleCommands[i]->_arguments[0], _simpleCommands[i]->_arguments);
             perror("execvp");
             exit(1);
         }
         else // parent
         {
+            lastPID = pid;
+
             if (input_tracker !=0)
             {
                 close(input_tracker);
@@ -358,17 +396,16 @@ void Command::execute()
                 close(output_tracker);
             }
 
-            if (!_background)
-            {
-                waitpid(pid, NULL, 0);
-            }
-
             if (i != _numberOfSimpleCommands - 1)
             {
                 input_tracker = pipeArray[0];
             }
         }
     }
+    if (!_background)
+        {
+            waitpid(lastPID, NULL, 0);
+        }
     clear();
     // prompt() here would make prog crash, while(true) loop alr handles asking for next input
 }
